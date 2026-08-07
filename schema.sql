@@ -1,96 +1,61 @@
-import { Flame, Calendar, BookOpen, Sun, Sunrise, Sunset, Moon } from "lucide-react";
-import useStudyData from "../../hooks/useStudyData";
-import StatCard from "../../components/dashboard/StatCard";
-import GoalRing from "../../components/dashboard/GoalRing";
-import Coach from "../../components/dashboard/Coach";
-import TodayPlanner from "../../components/dashboard/TodayPlanner";
-import RecentActivity from "../../components/dashboard/RecentActivity";
+CREATE TABLE IF NOT EXISTS users (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  name          VARCHAR(255) NOT NULL,
+  email         VARCHAR(255) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 5) return { text: "Good night", Icon: Moon, cls: "bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300" };
-  if (hour < 12) return { text: "Good morning", Icon: Sunrise, cls: "bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-300" };
-  if (hour < 17) return { text: "Good afternoon", Icon: Sun, cls: "bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-300" };
-  if (hour < 21) return { text: "Good evening", Icon: Sunset, cls: "bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-300" };
-  return { text: "Good night", Icon: Moon, cls: "bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300" };
-}
+CREATE TABLE IF NOT EXISTS subjects (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  user_id    INT NOT NULL,
+  name       VARCHAR(255) NOT NULL,
+  goal       INT NOT NULL,
+  progress   INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 
-function Dashboard() {
-  const {
-    subjects,
-    todayMinutes,
-    todayGoalPercentage,
-    dailyGoalMinutes,
-    streak,
-    todayEvents,
-    activity,
-    subjectStatus,
-    settings,
-    loading,
-  } = useStudyData(); 
+CREATE TABLE IF NOT EXISTS sessions (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  user_id    INT NOT NULL,
+  subject    VARCHAR(255) NOT NULL,
+  date       DATE NOT NULL,
+  minutes    INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 
-  const needsAttention = subjectStatus.find((s) => s.status === "Needs attention");
-  const coachMessage = needsAttention
-    ? `${needsAttention.name} needs attention — ${needsAttention.reason.toLowerCase()}.`
-    : subjects.length === 0
-    ? "Add a subject on the Study page to get personalized insights."
-    : "You're on track across your subjects. Keep it up.";
+CREATE TABLE IF NOT EXISTS events (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  user_id    INT NOT NULL,
+  title      VARCHAR(255) NOT NULL,
+  date       DATE NOT NULL,
+  start_time TIME NULL,
+  end_time   TIME NULL,
+  subject    VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 
-  const { text: greeting, Icon: GreetingIcon, cls: greetingCls } = getGreeting();
+CREATE TABLE IF NOT EXISTS activity (
+  id        INT AUTO_INCREMENT PRIMARY KEY,
+  user_id   INT NOT NULL,
+  text      VARCHAR(500) NOT NULL,
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 
-  return (
-    <div className="bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white p-5 transition-colors">
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-xl ${greetingCls} flex items-center justify-center shrink-0`}>
-          <GreetingIcon size={20} />
-        </div>
-        <div>
-          <h1 className="text-2xl font-semibold leading-tight">
-            {greeting}{settings.name ? `, ${settings.name}` : ""} 👋
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            Keep going! You're doing great.
-          </p>
-        </div>
-      </div>
+CREATE TABLE IF NOT EXISTS settings (
+  user_id          INT PRIMARY KEY,
+  name             VARCHAR(255) NULL,
+  daily_goal_hours DECIMAL(5,2) NOT NULL DEFAULT 2,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 
-      <div className="grid grid-cols-3 gap-4 mt-4">
-        <StatCard
-          icon={<Flame size={18} className="text-orange-500" />}
-          title="Current streak"
-          value={`${streak} ${streak === 1 ? "day" : "days"}`}
-        />
-        <StatCard
-          icon={<Calendar size={18} className="text-purple-600" />}
-          title="Events today"
-          value={todayEvents.length}
-          link={{ to: "/planner", label: "View schedule" }}
-        />
-        <StatCard
-          icon={<BookOpen size={18} className="text-emerald-600" />}
-          title="Subjects tracked"
-          value={subjects.length}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 mt-4">
-        <GoalRing
-          percentage={todayGoalPercentage}
-          completedMin={todayMinutes}
-          goalMin={dailyGoalMinutes}
-        />
-        <Coach
-          message={coachMessage}
-          focusSubject={needsAttention?.name || subjects[0]?.name}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 mt-4">
-        <TodayPlanner events={todayEvents} />
-        <RecentActivity activity={activity} />
-      </div>
-    </div>
-  );
-}
-
-export default Dashboard;
+CREATE INDEX idx_subjects_user   ON subjects(user_id);
+CREATE INDEX idx_sessions_user   ON sessions(user_id);
+CREATE INDEX idx_sessions_date   ON sessions(date);
+CREATE INDEX idx_events_user     ON events(user_id);
+CREATE INDEX idx_events_date     ON events(date);
+CREATE INDEX idx_activity_user   ON activity(user_id);
