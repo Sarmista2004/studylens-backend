@@ -7,7 +7,7 @@ import sessionsRoutes from "./routes/sessions.routes.js";
 import eventsRoutes from "./routes/events.routes.js";
 import activityRoutes from "./routes/activity.routes.js";
 import settingsRoutes from "./routes/settings.routes.js";
-// ...
+ import setupRoutes from "./routes/setup.routes.js";
 
 // ...
 
